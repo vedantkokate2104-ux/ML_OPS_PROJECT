@@ -226,3 +226,7 @@ terraform/*.tfvars
 terraform/.terraform.lock.hcl
 # Trained models ARE committed (needed by the Streamlit app)
 !models/*.pkl
+# MLflow local stores
+mlruns/
+mlartifacts/
+mlflow.db

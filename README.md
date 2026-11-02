@@ -53,6 +53,7 @@ The front end is a **Streamlit** dashboard (`streamlit_app.py`) that reads the p
 ├── streamlit_app.py            # Streamlit entry point
 ├── data_access.py              # Shared MongoDB query layer
 ├── app_metrics.py              # Prometheus instrumentation (optional)
+├── mlflow_tracking.py          # MLflow experiment tracking + model registry
 ├── api_server.py               # Legacy Flask API (+ /metrics, /healthz)
 ├── modeling.py, hedging.py, market_agent.py, social_anomaly.py, *_pipeline.py
 ├── models/                     # Trained LightGBM artefacts (committed, required at runtime)
@@ -211,6 +212,30 @@ terraform destroy                                           # tear down
 **Extending to AKS:** swap the Container Apps resources for `azurerm_kubernetes_cluster` plus an `AcrPull` role
 assignment, then `kubectl apply -f k8s/` with the image set to the ACR path.
 
+## 🧪 Experiment Tracking – MLflow (`mlflow_tracking.py`)
+
+MLflow tracks the two-stage LightGBM models and acts as the model registry.
+
+| Logged | Details |
+|---|---|
+| **Parameters** | All Stage 1 and Stage 2 LightGBM hyper-parameters, neutral threshold, transaction cost, CV splits, SHAP drop % |
+| **Metrics** | Per-asset nested runs: accuracy, macro-F1, majority-class baseline, magnitude MAE, mean confidence, backtest return, Sharpe and win rate; portfolio-level aggregates |
+| **Artifacts** | Feature-importance chart and CSV, the 40 SHAP-selected features, class map, asset encoder, per-asset metrics table |
+| **Models** | Both models logged with input examples and registered as `eventoracle-stage1-impact-classifier` and `eventoracle-stage2-magnitude-regressor` |
+
+Evaluation compares stored predictions with realised outcomes. Labels come from `modeling.label_events` and P&L
+from `modeling.backtest`, the same definitions used in training. The stored predictions may include the training
+period, so treat these as historical-fit metrics. `python modeling.py --train` also logs cross-validation macro-F1
+and MAE to MLflow whenever `MLFLOW_TRACKING_URI` is set.
+
+```bash
+pip install -r requirements-mlops.txt
+docker compose up -d mlflow                      # MLflow UI → http://localhost:5000
+export MLFLOW_TRACKING_URI=http://localhost:5000
+python mlflow_tracking.py                        # log + register current models
+python modeling.py --train                       # (optional) retrain – tracked automatically
+```
+
 ## 📊 Monitoring – Prometheus & Grafana (`monitoring/`)
 
 **How it works:** Streamlit owns its HTTP server, so `app_metrics.py` uses `prometheus_client` to serve
@@ -233,7 +258,7 @@ Metrics exported:
 
 ```bash
 docker compose up -d --build
-# Dashboard http://localhost:8501 · Prometheus http://localhost:9090 · Grafana http://localhost:3000 (admin/admin)
+# Dashboard :8501 · Prometheus :9090 · Grafana :3000 (admin/admin) · MLflow :5000
 ```
 
 The Grafana datasource and the *EventOracle – Application & Container Health* dashboard are provisioned

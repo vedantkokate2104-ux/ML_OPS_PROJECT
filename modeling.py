@@ -361,7 +361,8 @@ def train(df: pd.DataFrame, feature_cols: list[str]) -> tuple:
     # Stage 1 – initial
     log.info(f"Stage 1: classifier ({len(X)} rows, {len(feature_cols)} features)...")
     clf_init = lgb.LGBMClassifier(**clf_params)
-    log.info(f"  CV macro-F1: {_cv_score(clf_params, True, X, y1_enc):.4f}")
+    cv_f1_initial = _cv_score(clf_params, True, X, y1_enc)
+    log.info(f"  CV macro-F1: {cv_f1_initial:.4f}")
     clf_init.fit(X, y1_enc)
 
     # SHAP selection + retrain
@@ -369,13 +370,15 @@ def train(df: pd.DataFrame, feature_cols: list[str]) -> tuple:
     X_sel     = X[selected]
     clf_final = lgb.LGBMClassifier(**clf_params)
     clf_final.fit(X_sel, y1_enc)
-    log.info(f"  Stage 1 retrained CV macro-F1: {_cv_score(clf_params, True, X_sel, y1_enc):.4f}")
+    cv_f1_selected = _cv_score(clf_params, True, X_sel, y1_enc)
+    log.info(f"  Stage 1 retrained CV macro-F1: {cv_f1_selected:.4f}")
 
     # Stage 2
     log.info("Stage 2: magnitude regressor...")
     reg = lgb.LGBMRegressor(**LGB_REG_PARAMS)
     reg.fit(X_sel, y2)
-    log.info(f"  Stage 2 CV MAE: {-_cv_score(LGB_REG_PARAMS, False, X_sel, y2):.6f}")
+    cv_mae = -_cv_score(LGB_REG_PARAMS, False, X_sel, y2)
+    log.info(f"  Stage 2 CV MAE: {cv_mae:.6f}")
 
     for path, obj in [
         (STAGE1_MODEL_PATH, clf_final),
@@ -386,6 +389,18 @@ def train(df: pd.DataFrame, feature_cols: list[str]) -> tuple:
         with open(path, "wb") as f:
             pickle.dump(obj, f)
     log.info(f"Models saved to {MODEL_DIR}/")
+
+    if os.getenv("MLFLOW_TRACKING_URI"):
+        try:
+            from mlflow_tracking import log_training_run
+            log_training_run(clf_final, reg, selected, {
+                "cv_macro_f1_all_features": cv_f1_initial,
+                "cv_macro_f1_selected":     cv_f1_selected,
+                "cv_mae_magnitude":         cv_mae,
+                "train_rows":               len(X),
+            })
+        except Exception as e:
+            log.warning(f"MLflow logging skipped: {e}")
     return clf_final, reg, selected
 
 

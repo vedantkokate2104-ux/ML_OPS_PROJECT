@@ -1,0 +1,5 @@
+# Experiment tracking & model registry (local / MLOps tooling only –
+# kept out of requirements.txt so the Streamlit Cloud build stays lean)
+-r requirements.txt
+mlflow>=3.0,<4
+matplotlib>=3.8
