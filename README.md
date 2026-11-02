@@ -4,6 +4,8 @@
 
 ![CI/CD](https://github.com/vedantkokate2104-ux/ML_OPS_PROJECT/actions/workflows/ci-cd.yml/badge.svg)
 
+**🔴 Live app:** https://mlopsprojectgit-dugwuoy4mszdzveah5az7x.streamlit.app
+
 EventOracle detects market-moving events from news, macroeconomic releases (RBI, Fed, CPI, GDP, IIP),
 institutional flows (FII/DII) and social sentiment, and predicts their impact on 10 assets:
 NIFTY, BANKNIFTY, NIFTY IT, NIFTY Metal, INR/USD, Brent, Gold, Silver, Platinum and Bitcoin.
