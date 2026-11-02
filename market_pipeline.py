@@ -105,6 +105,7 @@ def clean_data(df: pd.DataFrame, asset_name: str) -> pd.DataFrame:
     # yfinance MultiIndex columns when single ticker – flatten if needed
     if isinstance(df.columns, pd.MultiIndex):
         df.columns = [col[0].lower() for col in df.columns]
+        print(f"[{asset_name}] Flattened MultiIndex columns: {df.columns.tolist()}")
     else:
         df.columns = [c.lower() for c in df.columns]
 
