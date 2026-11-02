@@ -1,0 +1,15 @@
+# Non-secret configuration. Credentials go in the `project-apex-secrets` Secret:
+#   kubectl create secret generic project-apex-secrets \
+#     --from-literal=MONGO_URI="mongodb+srv://..." \
+#     --from-literal=GEMINI_API_KEY="..."
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: project-apex-config
+  labels:
+    app: project-apex
+data:
+  ENABLE_METRICS: "true"
+  METRICS_PORT: "9100"
+  STREAMLIT_SERVER_HEADLESS: "true"
+  STREAMLIT_BROWSER_GATHER_USAGE_STATS: "false"

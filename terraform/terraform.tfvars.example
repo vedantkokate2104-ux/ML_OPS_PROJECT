@@ -1,0 +1,6 @@
+# Copy to terraform.tfvars (gitignored) or use TF_VAR_* environment variables.
+project_name   = "projectapex"
+location       = "centralindia"
+image_tag      = "latest"
+mongo_uri      = "mongodb+srv://<user>:<password>@<cluster>.mongodb.net/"
+gemini_api_key = ""

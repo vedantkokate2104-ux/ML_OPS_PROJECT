@@ -1,0 +1,81 @@
+name: CI/CD
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  test:
+    name: Lint, test & validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest ruff
+
+      - name: Python syntax check
+        run: python -m compileall -q .
+
+      - name: Code quality (ruff – errors & undefined names)
+        run: ruff check . --select E9,F63,F7,F82 --output-format=github
+
+      - name: Validate Streamlit app imports
+        run: python -c "import data_access, app_metrics, modeling, hedging, market_agent, social_anomaly, streamlit_app"
+
+      - name: Run tests (no production secrets – pages must degrade gracefully)
+        run: pytest -q
+
+  docker:
+    name: Docker build & health check
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t project-apex:${{ github.sha }} .
+
+      - name: Start container and probe Streamlit health endpoint
+        run: |
+          docker run -d --name apex -p 8501:8501 project-apex:${{ github.sha }}
+          for i in $(seq 1 30); do
+            curl -fs http://localhost:8501/_stcore/health && exit 0
+            sleep 2
+          done
+          docker logs apex
+          exit 1
+
+  config:
+    name: Validate K8s & Terraform
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate YAML (k8s, monitoring, workflow)
+        run: |
+          pip install pyyaml
+          python -c "import yaml,glob,json; [list(yaml.safe_load_all(open(f))) for f in glob.glob('k8s/*.yaml')+glob.glob('monitoring/*.yml')]; json.load(open('monitoring/grafana-dashboard.json')); print('ok')"
+
+      - uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform fmt & validate
+        working-directory: terraform
+        run: |
+          terraform fmt -check -recursive
+          terraform init -backend=false
+          terraform validate
+
+# Deployment: Streamlit Community Cloud watches the connected GitHub branch and
+# redeploys automatically on every push – no deploy step/token is needed here.

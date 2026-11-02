@@ -1,0 +1,7 @@
+apiVersion: 1
+providers:
+  - name: eventoracle
+    folder: EventOracle
+    type: file
+    options:
+      path: /var/lib/grafana/dashboards
