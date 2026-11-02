@@ -4,7 +4,7 @@
   "schemaVersion": 39,
   "version": 1,
   "time": {
-    "from": "now-6h",
+    "from": "now-30m",
     "to": "now"
   },
   "refresh": "30s",
@@ -293,8 +293,8 @@
         },
         {
           "refId": "B",
-          "expr": "sum by (name) (rate(container_cpu_usage_seconds_total{name!=\"\"}[1m]))",
-          "legendFormat": "container {{name}}",
+          "expr": "sum by (name) (rate(container_cpu_usage_seconds_total{name!=\"\"}[1m])) or rate(container_cpu_usage_seconds_total{id=\"/docker\"}[1m])",
+          "legendFormat": "containers {{name}}",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -335,8 +335,8 @@
         },
         {
           "refId": "B",
-          "expr": "sum by (name) (container_memory_usage_bytes{name!=\"\"})",
-          "legendFormat": "container {{name}}",
+          "expr": "sum by (name) (container_memory_usage_bytes{name!=\"\"}) or container_memory_usage_bytes{id=\"/docker\"}",
+          "legendFormat": "containers {{name}}",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
